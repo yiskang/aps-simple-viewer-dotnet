@@ -18,14 +18,12 @@ public class Startup
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddControllers();
         var clientID = Configuration["APS_CLIENT_ID"];
         var clientSecret = Configuration["APS_CLIENT_SECRET"];
         if (string.IsNullOrEmpty(clientID) || string.IsNullOrEmpty(clientSecret))
         {
             throw new ApplicationException("Missing required environment variables APS_CLIENT_ID or APS_CLIENT_SECRET.");
         }
-        services.AddSingleton<APS>(new APS(clientID, clientSecret));
 
         services.Configure<FormOptions>(options =>
         {
@@ -37,6 +35,9 @@ public class Startup
         {
             options.MaxRequestBodySize = int.MaxValue; // or your desired value
         });
+
+        services.AddControllers();
+        services.AddSingleton<APS>(new APS(clientID, clientSecret));
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
