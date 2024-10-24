@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Windows.Markup;
 using Autodesk.ModelDerivative;
 using Autodesk.ModelDerivative.Model;
 
@@ -13,7 +14,7 @@ public partial class APS
         return System.Convert.ToBase64String(plainTextBytes).TrimEnd('=');
     }
 
-    public async Task<Job> TranslateModel(string objectId, string rootFilename)
+    public async Task<Job> TranslateModel(string objectId, string rootFilename, bool xAdsForce = false)
     {
         var auth = await GetInternalToken();
         var modelDerivativeClient = new ModelDerivativeClient(_sdkManager);
@@ -47,8 +48,46 @@ public partial class APS
             payload.Input.RootFilename = rootFilename;
             payload.Input.CompressedUrn = true;
         }
-        var job = await modelDerivativeClient.StartJobAsync(jobPayload: payload, accessToken: auth.AccessToken);
+        var job = await modelDerivativeClient.StartJobAsync(xAdsForce: xAdsForce, jobPayload: payload, accessToken: auth.AccessToken);
         return job;
+    }
+
+    private async Task<bool> CheckIfTranslationExists(string urn)
+    {
+        var auth = await GetInternalToken();
+        var modelDerivativeClient = new ModelDerivativeClient(_sdkManager);
+
+        try
+        {
+            await modelDerivativeClient.GetManifestAsync(urn, accessToken: auth.AccessToken);
+            return true;
+        }
+        catch (ModelDerivativeApiException ex)
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteTranslationResults(string urn)
+    {
+        var hasTranslation = await CheckIfTranslationExists(urn);
+        if (hasTranslation == true)
+        {
+            var auth = await GetInternalToken();
+            var modelDerivativeClient = new ModelDerivativeClient(_sdkManager);
+
+            try
+            {
+                await modelDerivativeClient.DeleteManifestAsync(urn, accessToken: auth.AccessToken);
+                return true;
+            }
+            catch (ModelDerivativeApiException ex)
+            {
+                // Do nothing
+            }
+        }
+
+        return false;
     }
 
     public async Task<TranslationStatus> GetTranslationStatus(string urn)

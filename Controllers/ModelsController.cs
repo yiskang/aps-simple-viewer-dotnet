@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Autodesk.Oss.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,19 +13,13 @@ public class ModelsController : ControllerBase
 {
     public record BucketObject(string name, string urn);
 
+    public record TranslateObject(string bucketKey, string objectKey, string rootFilename, /*bool isSvf2 = true,*/ bool xAdsForce = false);
+
     private readonly APS _aps;
 
     public ModelsController(APS aps)
     {
         _aps = aps;
-    }
-
-    [HttpGet()]
-    public async Task<IEnumerable<BucketObject>> GetModels()
-    {
-        var objects = await _aps.GetObjects();
-        return from o in objects
-               select new BucketObject(o.ObjectKey, APS.Base64Encode(o.ObjectId));
     }
 
     [HttpGet("{urn}/status")]
@@ -33,25 +29,50 @@ public class ModelsController : ControllerBase
         return status;
     }
 
+    /// <summary>
+    /// Base64 enconde a string
+    /// </summary>
+    public static string Base64Encode(string plainText)
+    {
+        var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+        return System.Convert.ToBase64String(plainTextBytes);
+    }
+
+    [HttpPost("{urn}/jobs")]
+    public async Task<BucketObject> TranslateModel([FromRoute] string urn, [FromBody] TranslateObject data)
+    {
+        byte[] urnBytes = Convert.FromBase64String(urn);
+        string objectId = System.Text.Encoding.UTF8.GetString(urnBytes);
+
+        var job = await _aps.TranslateModel(objectId, data.rootFilename, data.xAdsForce);
+        return new BucketObject(data.objectKey, job.Urn);
+    }
+
     public class UploadModelForm
     {
-        [FromForm(Name = "model-zip-entrypoint")]
-        public string? Entrypoint { get; set; }
+        [FromForm(Name = "bucket-key")]
+        public string BucketKey { get; set; }
 
         [FromForm(Name = "model-file")]
         public IFormFile File { get; set; }
     }
 
     [HttpPost(), DisableRequestSizeLimit]
-    public async Task<BucketObject> UploadAndTranslateModel([FromForm] UploadModelForm form)
+    public async Task<ObjectDetails> UploadAndTranslateModel([FromForm] UploadModelForm form)
     {
-        var tempFilePath = Path.GetTempFileName();
-        using (var stream = System.IO.File.Create(tempFilePath))
+        ObjectDetails objectDetails = null;
+        using (var memoryStream = new MemoryStream())
         {
-            await form.File.CopyToAsync(stream);
+            await form.File.CopyToAsync(memoryStream);
+            objectDetails = await _aps.UploadModel(form.BucketKey, form.File.FileName, memoryStream);
         }
-        var obj = await _aps.UploadModel(form.File.FileName, tempFilePath);
-        var job = await _aps.TranslateModel(obj.ObjectId, form.Entrypoint);
-        return new BucketObject(obj.ObjectKey, job.Urn);
+
+        if (objectDetails == null)
+        {
+            HttpContext.Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
+            return null;
+        }
+
+        return objectDetails;
     }
 }

@@ -5,7 +5,7 @@
   <ItemGroup>
     <PackageReference Include="Autodesk.Authentication" Version="1.0.0" />
     <PackageReference Include="Autodesk.ModelDerivative" Version="1.0.0" />
-    <PackageReference Include="Autodesk.OSS" Version="1.0.0" />
-    <PackageReference Include="Autodesk.SdkManager" Version="1.0.0" />
+    <PackageReference Include="Autodesk.OSS" Version="1.1.1" />
+    <PackageReference Include="Autodesk.SdkManager" Version="1.1.0" />
   </ItemGroup>
 </Project>

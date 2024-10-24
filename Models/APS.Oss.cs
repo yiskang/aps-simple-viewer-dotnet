@@ -7,14 +7,13 @@ using Autodesk.Oss.Model;
 
 public partial class APS
 {
-    private async Task EnsureBucketExists(string bucketKey)
+    public async Task<Bucket> EnsureBucketExists(string bucketKey, string policyKey = "persistent", string region = "US")
     {
-        const string region = "US";
         var auth = await GetInternalToken();
         var ossClient = new OssClient(_sdkManager);
         try
         {
-            await ossClient.GetBucketDetailsAsync(bucketKey, accessToken: auth.AccessToken);
+            return await ossClient.GetBucketDetailsAsync(auth.AccessToken, bucketKey);
         }
         catch (OssApiException ex)
         {
@@ -23,9 +22,9 @@ public partial class APS
                 var payload = new CreateBucketsPayload
                 {
                     BucketKey = bucketKey,
-                    PolicyKey = "persistent"
+                    PolicyKey = (PolicyKey)Enum.Parse(typeof(PolicyKey), policyKey, true)
                 };
-                await ossClient.CreateBucketAsync(region, payload, auth.AccessToken);
+                return await ossClient.CreateBucketAsync(auth.AccessToken, (Region)Enum.Parse(typeof(Region), region, true), payload);
             }
             else
             {
@@ -34,28 +33,43 @@ public partial class APS
         }
     }
 
-    public async Task<ObjectDetails> UploadModel(string objectName, string pathToFile)
+    public async Task<ObjectDetails> UploadModel(string bucketKey, string objectKey, Stream fileToUpload)
     {
-        await EnsureBucketExists(_bucket);
+        await EnsureBucketExists(bucketKey);
         var auth = await GetInternalToken();
         var ossClient = new OssClient(_sdkManager);
-        var objectDetails = await ossClient.Upload(_bucket, objectName, pathToFile, auth.AccessToken, new System.Threading.CancellationToken());
+        var objectDetails = await ossClient.Upload(bucketKey, objectKey, fileToUpload, auth.AccessToken, new System.Threading.CancellationToken());
         return objectDetails;
     }
 
-    public async Task<IEnumerable<ObjectDetails>> GetObjects()
+    public async Task<IEnumerable<BucketsItems>> GetBuckets(int pageSize = 64)
     {
-        await EnsureBucketExists(_bucket);
         var auth = await GetInternalToken();
         var ossClient = new OssClient(_sdkManager);
-        const int PageSize = 64;
-        var results = new List<ObjectDetails>();
-        var response = await ossClient.GetObjectsAsync(_bucket, PageSize, accessToken: auth.AccessToken);
+        var results = new List<BucketsItems>();
+        var response = await ossClient.GetBucketsAsync(limit: pageSize, accessToken: auth.AccessToken);
         results.AddRange(response.Items);
         while (!string.IsNullOrEmpty(response.Next))
         {
             var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(response.Next).Query);
-            response = await ossClient.GetObjectsAsync(_bucket, PageSize, startAt: queryParams["startAt"], accessToken: auth.AccessToken);
+            response = await ossClient.GetBucketsAsync(limit: pageSize, startAt: queryParams["startAt"], accessToken: auth.AccessToken);
+            results.AddRange(response.Items);
+        }
+        return results;
+    }
+
+    public async Task<IEnumerable<ObjectDetails>> GetObjects(string bucketKey, int pageSize = 64)
+    {
+        await EnsureBucketExists(bucketKey);
+        var auth = await GetInternalToken();
+        var ossClient = new OssClient(_sdkManager);
+        var results = new List<ObjectDetails>();
+        var response = await ossClient.GetObjectsAsync(auth.AccessToken, bucketKey, pageSize);
+        results.AddRange(response.Items);
+        while (!string.IsNullOrEmpty(response.Next))
+        {
+            var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(response.Next).Query);
+            response = await ossClient.GetObjectsAsync(auth.AccessToken, bucketKey, pageSize, startAt: queryParams["startAt"]);
             results.AddRange(response.Items);
         }
         return results;

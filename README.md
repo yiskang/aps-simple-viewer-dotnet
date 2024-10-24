@@ -1,20 +1,20 @@
-# Simple Viewer (.NET)
+# Simple Viewer Legacy UI (.NET)
 
 ![platforms](https://img.shields.io/badge/platform-windows%20%7C%20osx%20%7C%20linux-lightgray.svg)
 [![.net](https://img.shields.io/badge/net-6.0-blue.svg)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
 [![license](https://img.shields.io/:license-mit-green.svg)](https://opensource.org/licenses/MIT)
 
-[Autodesk Platform Services](https://forge.autodesk.com) application built by following
+[Autodesk Platform Services](https://aps.autodesk.com) application built by following
 the [Simple Viewer](https://tutorials.autodesk.io/tutorials/simple-viewer/) tutorial
-from https://tutorials.autodesk.io.
+from https://tutorials.autodesk.io, but it uses the old Autodesk Forge Sample UI.
 
-![thumbnail](thumbnail.png)
+![thumbnail](thumbnail.jpg)
 
 ## Development
 
 ### Prerequisites
 
-- [APS credentials](https://forge.autodesk.com/en/docs/oauth/v2/tutorials/create-app)
+- [APS credentials](https://aps.autodesk.com/en/docs/oauth/v2/tutorials/create-app)
 - [.NET 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
 - Command-line terminal such as [PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/overview)
 or [bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) (should already be available on your system)
@@ -64,9 +64,13 @@ If you're seeing errors related to `dev-certs`, try cleaning any existing certif
 as explained in https://docs.microsoft.com/en-us/dotnet/core/additional-tools/self-signed-certificates-guide,
 and on macOS and Windows systems, do not forget to use the `--trust` switch.
 
-If you have any other question, please contact us via https://forge.autodesk.com/en/support/get-help.
+If you have any other question, please contact us via https://aps.autodesk.com/en/support/get-help.
 
 ## License
 
 This sample is licensed under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 Please see the [LICENSE](LICENSE) file for more details.
+
+## Written by
+
+Eason Kang [in/eason-kang-b4398492/](https://www.linkedin.com/in/eason-kang-b4398492), [Developer Advocacy and Support Team](http://aps.autodesk.com)
